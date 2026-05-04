@@ -1,0 +1,269 @@
+:root {
+  --bg: #0f1419;
+  --surface: #1a222d;
+  --border: #2d3a4a;
+  --text: #e8eef4;
+  --muted: #8b9cb0;
+  --accent: #3d9cf0;
+  --accent-dim: #2a6fa8;
+  --danger: #e85d5d;
+  --ok: #5dd39e;
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+header.site-header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 1rem 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.5rem;
+}
+
+header.site-header h1 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+nav.main-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+
+nav.main-nav a {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+nav.main-nav a:hover {
+  color: var(--text);
+}
+
+main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+h2 {
+  margin-top: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 1rem;
+}
+
+.stat-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: center;
+}
+
+.stat-card .value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.stat-card .label {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-top: 0.25rem;
+}
+
+label {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 0.25rem;
+}
+
+input,
+select,
+textarea,
+button {
+  font: inherit;
+}
+
+input[type="text"],
+input[type="tel"],
+input[type="email"],
+input[type="number"],
+input[type="datetime-local"],
+select,
+textarea {
+  width: 100%;
+  max-width: 420px;
+  padding: 0.5rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+}
+
+textarea {
+  max-width: 100%;
+  min-height: 72px;
+}
+
+button,
+.btn {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  border: 1px solid var(--accent-dim);
+  background: var(--accent);
+  color: #0a0e12;
+  font-weight: 600;
+  cursor: pointer;
+}
+button.secondary {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--border);
+}
+button.small {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+}
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  align-items: flex-end;
+  margin-bottom: 1rem;
+}
+
+.row > div {
+  flex: 1 1 160px;
+}
+
+.msg {
+  padding: 0.65rem 0.85rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+.msg.error {
+  background: rgba(232, 93, 93, 0.12);
+  border: 1px solid var(--danger);
+  color: #f0b4b4;
+}
+.msg.ok {
+  background: rgba(93, 211, 158, 0.1);
+  border: 1px solid var(--ok);
+  color: #b8ebd4;
+}
+
+table.data {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+table.data th,
+table.data td {
+  text-align: left;
+  padding: 0.5rem 0.65rem;
+  border-bottom: 1px solid var(--border);
+}
+
+table.data th {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.menu-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.menu-cat h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  color: var(--muted);
+}
+
+.menu-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.menu-item:last-child {
+  border-bottom: none;
+}
+
+.menu-item .price {
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.cart-lines {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+}
+
+.cart-lines li {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.order-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+@media (max-width: 600px) {
+  main {
+    padding: 1rem;
+  }
+}

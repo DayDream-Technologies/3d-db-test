@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Reservations — Restaurant demo</title>
+    <link rel="stylesheet" href="/css/style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <h1>Reservations</h1>
+      <nav class="main-nav">
+        <a href="/">Home</a>
+        <a href="/order.html">Place order</a>
+        <a href="/board.html">Orders board</a>
+        <a href="/reservations.html">Reservations</a>
+        <a href="/waitlist.html">Waitlist</a>
+      </nav>
+    </header>
+    <main>
+      <div id="msg"></div>
+      <div class="panel">
+        <h2>New reservation</h2>
+        <div class="row">
+          <div>
+            <label for="rcName">Customer name</label>
+            <input type="text" id="rcName" />
+          </div>
+          <div>
+            <label for="rcPhone">Phone</label>
+            <input type="tel" id="rcPhone" />
+          </div>
+          <div>
+            <button type="button" id="btnCreateCust" class="secondary">Create customer</button>
+          </div>
+        </div>
+        <input type="hidden" id="customerId" />
+        <p id="custHint" style="color: var(--muted); font-size: 0.9rem"></p>
+        <div class="row">
+          <div>
+            <label for="tableId">Table</label>
+            <select id="tableId"></select>
+          </div>
+          <div>
+            <label for="partySize">Party size</label>
+            <input type="number" id="partySize" min="1" value="2" />
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label for="startAt">Start</label>
+            <input type="datetime-local" id="startAt" />
+          </div>
+          <div>
+            <label for="endAt">End</label>
+            <input type="datetime-local" id="endAt" />
+          </div>
+        </div>
+        <label for="rnotes">Notes</label>
+        <textarea id="rnotes"></textarea>
+        <p>
+          <button type="button" id="btnRes">Book</button>
+        </p>
+      </div>
+      <div class="panel">
+        <h2>Upcoming (filtered)</h2>
+        <div class="row">
+          <div>
+            <label for="fFrom">From</label>
+            <input type="datetime-local" id="fFrom" />
+          </div>
+          <div>
+            <label for="fTo">To</label>
+            <input type="datetime-local" id="fTo" />
+          </div>
+          <div>
+            <button type="button" id="btnFilter" class="secondary">Refresh list</button>
+          </div>
+        </div>
+        <table class="data">
+          <thead>
+            <tr>
+              <th>When</th>
+              <th>Table</th>
+              <th>Party</th>
+              <th>Customer</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="list"></tbody>
+        </table>
+      </div>
+    </main>
+    <script src="/js/api.js"></script>
+    <script>
+      (function () {
+        const msg = document.getElementById("msg");
+
+        function toSql(dt) {
+          if (!dt) return null;
+          let s = dt.replace("T", " ");
+          if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(s)) s += ":00";
+          return s;
+        }
+
+        function show(html, ok) {
+          msg.innerHTML = '<div class="msg ' + (ok ? "ok" : "error") + '">' + html + "</div>";
+        }
+
+        function loadTables() {
+          return Api.get("/tables").then(function (data) {
+            const sel = document.getElementById("tableId");
+            sel.innerHTML = "";
+            data.tables.forEach(function (t) {
+              const o = document.createElement("option");
+              o.value = t.id;
+              o.textContent = t.name + " — " + t.locationName + " (max " + t.capacity + ")";
+              sel.appendChild(o);
+            });
+          });
+        }
+
+        function loadList() {
+          const from = document.getElementById("fFrom").value;
+          const to = document.getElementById("fTo").value;
+          let q = "/reservations?";
+          if (from) q += "from=" + encodeURIComponent(toSql(from)) + "&";
+          if (to) q += "to=" + encodeURIComponent(toSql(to));
+          Api.get(q)
+            .then(function (data) {
+              const tb = document.getElementById("list");
+              tb.innerHTML = "";
+              data.reservations.forEach(function (r) {
+                const tr = document.createElement("tr");
+                tr.innerHTML =
+                  "<td>" +
+                  r.startAt +
+                  " – " +
+                  r.endAt +
+                  "</td><td>" +
+                  r.tableName +
+                  "</td><td>" +
+                  r.partySize +
+                  "</td><td>" +
+                  r.customerName +
+                  "</td><td>" +
+                  r.statusCode +
+                  "</td>";
+                tb.appendChild(tr);
+              });
+            })
+            .catch(function (e) {
+              show(e.message || "List failed", false);
+            });
+        }
+
+        document.getElementById("btnCreateCust").onclick = function () {
+          const name = document.getElementById("rcName").value.trim();
+          const phone = document.getElementById("rcPhone").value.trim();
+          if (!name && !phone) {
+            show("Enter name or phone.", false);
+            return;
+          }
+          Api.post("/customers", { name: name || "Guest", phone: phone || null })
+            .then(function (c) {
+              document.getElementById("customerId").value = c.id;
+              document.getElementById("custHint").textContent = "Using customer #" + c.id;
+              show("Customer created.", true);
+            })
+            .catch(function (e) {
+              show(e.message || "Create failed", false);
+            });
+        };
+
+        document.getElementById("btnRes").onclick = function () {
+          const cid = document.getElementById("customerId").value;
+          if (!cid) {
+            show("Create or select a customer first.", false);
+            return;
+          }
+          const body = {
+            customerId: Number(cid),
+            tableId: Number(document.getElementById("tableId").value),
+            partySize: Number(document.getElementById("partySize").value),
+            startAt: toSql(document.getElementById("startAt").value),
+            endAt: toSql(document.getElementById("endAt").value),
+            notes: document.getElementById("rnotes").value || null,
+          };
+          if (!body.startAt || !body.endAt) {
+            show("Start and end required.", false);
+            return;
+          }
+          Api.post("/reservations", body)
+            .then(function (r) {
+              show("Reservation <strong>#" + r.id + "</strong> confirmed.", true);
+              loadList();
+            })
+            .catch(function (e) {
+              const detail =
+                e.body && e.body.conflicts
+                  ? " Conflicts: " + JSON.stringify(e.body.conflicts)
+                  : "";
+              show((e.message || "Failed") + detail, false);
+            });
+        };
+
+        document.getElementById("btnFilter").onclick = loadList;
+
+        loadTables().then(loadList);
+
+        const now = new Date();
+        now.setMinutes(0, 0, 0);
+        const end = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+        function fmt(d) {
+          const p = function (n) {
+            return (n < 10 ? "0" : "") + n;
+          };
+          return (
+            d.getFullYear() +
+            "-" +
+            p(d.getMonth() + 1) +
+            "-" +
+            p(d.getDate()) +
+            "T" +
+            p(d.getHours()) +
+            ":" +
+            p(d.getMinutes())
+          );
+        }
+        document.getElementById("startAt").value = fmt(now);
+        document.getElementById("endAt").value = fmt(end);
+        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const weekAhead = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+        document.getElementById("fFrom").value = fmt(weekAgo);
+        document.getElementById("fTo").value = fmt(weekAhead);
+      })();
+    </script>
+  </body>
+</html>

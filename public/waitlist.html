@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Waitlist — Restaurant demo</title>
+    <link rel="stylesheet" href="/css/style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <h1>Waitlist</h1>
+      <nav class="main-nav">
+        <a href="/">Home</a>
+        <a href="/order.html">Place order</a>
+        <a href="/board.html">Orders board</a>
+        <a href="/reservations.html">Reservations</a>
+        <a href="/waitlist.html">Waitlist</a>
+      </nav>
+    </header>
+    <main>
+      <div id="msg"></div>
+      <div class="panel">
+        <h2>Add party</h2>
+        <div class="row">
+          <div>
+            <label for="wName">Name</label>
+            <input type="text" id="wName" />
+          </div>
+          <div>
+            <label for="wPhone">Phone</label>
+            <input type="tel" id="wPhone" />
+          </div>
+          <div>
+            <label for="wParty">Party size</label>
+            <input type="number" id="wParty" min="1" value="2" />
+          </div>
+        </div>
+        <label for="wnotes">Notes</label>
+        <textarea id="wnotes"></textarea>
+        <p><button type="button" id="btnAdd">Add to waitlist</button></p>
+      </div>
+      <div class="panel">
+        <h2>Queue</h2>
+        <table class="data">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Requested</th>
+              <th>Party</th>
+              <th>Customer</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="list"></tbody>
+        </table>
+      </div>
+    </main>
+    <script src="/js/api.js"></script>
+    <script>
+      (function () {
+        const msg = document.getElementById("msg");
+
+        function show(html, ok) {
+          msg.innerHTML = '<div class="msg ' + (ok ? "ok" : "error") + '">' + html + "</div>";
+        }
+
+        function load() {
+          Api.get("/waitlist")
+            .then(function (data) {
+              const tb = document.getElementById("list");
+              tb.innerHTML = "";
+              data.entries.forEach(function (e) {
+                const tr = document.createElement("tr");
+                tr.innerHTML =
+                  "<td>" +
+                  e.id +
+                  "</td><td>" +
+                  e.requestedAt +
+                  "</td><td>" +
+                  e.partySize +
+                  "</td><td>" +
+                  e.customerName +
+                  (e.phone ? " (" + e.phone + ")" : "") +
+                  "</td><td>" +
+                  e.statusCode +
+                  "</td>";
+                tb.appendChild(tr);
+              });
+            })
+            .catch(function (err) {
+              show(err.message || "Load failed", false);
+            });
+        }
+
+        document.getElementById("btnAdd").onclick = function () {
+          const body = {
+            customer: {
+              name: document.getElementById("wName").value,
+              phone: document.getElementById("wPhone").value,
+            },
+            partySize: Number(document.getElementById("wParty").value),
+            notes: document.getElementById("wnotes").value || null,
+          };
+          Api.post("/waitlist", body)
+            .then(function (r) {
+              show("Waitlist entry <strong>#" + r.id + "</strong>.", true);
+              document.getElementById("wnotes").value = "";
+              load();
+            })
+            .catch(function (e) {
+              show(e.message || "Failed", false);
+            });
+        };
+
+        load();
+      })();
+    </script>
+  </body>
+</html>

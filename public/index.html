@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Restaurant demo — Home</title>
+    <link rel="stylesheet" href="/css/style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <h1>Local restaurant test</h1>
+      <nav class="main-nav">
+        <a href="/">Home</a>
+        <a href="/order.html">Place order</a>
+        <a href="/board.html">Orders board</a>
+        <a href="/reservations.html">Reservations</a>
+        <a href="/waitlist.html">Waitlist</a>
+      </nav>
+    </header>
+    <main>
+      <h2>Today at a glance</h2>
+      <p style="color: var(--muted); margin-top: 0">
+        SQLite + Express. Runs only on your machine.
+      </p>
+      <div id="msg"></div>
+      <div class="stats" id="stats">
+        <div class="stat-card">
+          <div class="value" id="openOrders">—</div>
+          <div class="label">Open orders</div>
+        </div>
+        <div class="stat-card">
+          <div class="value" id="resToday">—</div>
+          <div class="label">Reservations today</div>
+        </div>
+        <div class="stat-card">
+          <div class="value" id="waitlist">—</div>
+          <div class="label">Waitlist (waiting)</div>
+        </div>
+      </div>
+      <div class="panel" style="margin-top: 1.5rem">
+        <h2 style="margin-top: 0">Sample SQL</h2>
+        <p style="color: var(--muted)">
+          Example reporting queries live in the project <code>queries/</code> folder.
+        </p>
+      </div>
+    </main>
+    <script src="/js/api.js"></script>
+    <script>
+      (async function () {
+        const msg = document.getElementById("msg");
+        try {
+          const s = await Api.get("/summary");
+          document.getElementById("openOrders").textContent = s.openOrders;
+          document.getElementById("resToday").textContent = s.reservationsToday;
+          document.getElementById("waitlist").textContent = s.waitlistWaiting;
+        } catch (e) {
+          msg.innerHTML =
+            '<div class="msg error">Could not load summary. Is the server running?</div>';
+        }
+      })();
+    </script>
+  </body>
+</html>

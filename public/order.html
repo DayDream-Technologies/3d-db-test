@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Place order — Restaurant demo</title>
+    <link rel="stylesheet" href="/css/style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <h1>Place order</h1>
+      <nav class="main-nav">
+        <a href="/">Home</a>
+        <a href="/order.html">Place order</a>
+        <a href="/board.html">Orders board</a>
+        <a href="/reservations.html">Reservations</a>
+        <a href="/waitlist.html">Waitlist</a>
+      </nav>
+    </header>
+    <main>
+      <div id="msg"></div>
+      <div class="panel">
+        <h2>Customer</h2>
+        <div class="row">
+          <div>
+            <label for="custSearch">Search existing</label>
+            <input type="text" id="custSearch" placeholder="Name or phone" />
+          </div>
+          <div>
+            <button type="button" class="secondary" id="btnSearch">Search</button>
+          </div>
+        </div>
+        <div id="custResults" style="margin-bottom: 1rem"></div>
+        <input type="hidden" id="customerId" />
+        <div class="row">
+          <div>
+            <label for="cName">Name (new guest)</label>
+            <input type="text" id="cName" />
+          </div>
+          <div>
+            <label for="cPhone">Phone</label>
+            <input type="tel" id="cPhone" />
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label for="tableId">Table (optional)</label>
+            <select id="tableId">
+              <option value="">— None —</option>
+            </select>
+          </div>
+          <div>
+            <label for="promo">Promotion code</label>
+            <input type="text" id="promo" placeholder="HAPPY10" />
+          </div>
+        </div>
+        <label for="notes">Order notes</label>
+        <textarea id="notes"></textarea>
+      </div>
+
+      <div class="panel">
+        <h2>Menu</h2>
+        <div id="menu"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Cart</h2>
+        <ul class="cart-lines" id="cart"></ul>
+        <button type="button" id="btnSubmit" disabled>Submit order</button>
+      </div>
+    </main>
+    <script src="/js/api.js"></script>
+    <script>
+      (function () {
+        const cart = new Map();
+        const msgEl = document.getElementById("msg");
+        const menuEl = document.getElementById("menu");
+        const cartEl = document.getElementById("cart");
+        const customerIdEl = document.getElementById("customerId");
+
+        function money(c) {
+          return "$" + (c / 100).toFixed(2);
+        }
+
+        function showMsg(html, ok) {
+          msgEl.innerHTML =
+            '<div class="msg ' + (ok ? "ok" : "error") + '">' + html + "</div>";
+        }
+
+        function renderCart() {
+          cartEl.innerHTML = "";
+          for (const [id, row] of cart) {
+            const li = document.createElement("li");
+            li.innerHTML =
+              "<span>" +
+              row.name +
+              " × " +
+              row.qty +
+              "</span><span>" +
+              money(row.qty * row.priceCents) +
+              ' <button type="button" class="small secondary" data-rm="' +
+              id +
+              '">Remove</button></span>';
+            li.querySelector("button").onclick = function () {
+              cart.delete(id);
+              renderCart();
+            };
+            cartEl.appendChild(li);
+          }
+          document.getElementById("btnSubmit").disabled = cart.size === 0;
+        }
+
+        function addToCart(item) {
+          const cur = cart.get(item.id) || {
+            qty: 0,
+            name: item.name,
+            priceCents: item.priceCents,
+          };
+          cur.qty += 1;
+          cart.set(item.id, cur);
+          renderCart();
+        }
+
+        Api.get("/menu?available=1")
+          .then(function (data) {
+            const frag = document.createDocumentFragment();
+            data.categories.forEach(function (cat) {
+              const wrap = document.createElement("div");
+              wrap.className = "menu-cat";
+              wrap.innerHTML = "<h3>" + cat.name + "</h3>";
+              cat.items.forEach(function (it) {
+                if (!it.isAvailable) return;
+                const row = document.createElement("div");
+                row.className = "menu-item";
+                row.innerHTML =
+                  "<span>" +
+                  it.name +
+                  (it.description
+                    ? ' <small style="color:var(--muted)">' +
+                      it.description +
+                      "</small>"
+                    : "") +
+                  "</span><span class=\"price\">" +
+                  money(it.priceCents) +
+                  ' <button type="button" class="small">Add</button></span>';
+                row.querySelector("button").onclick = function () {
+                  addToCart({
+                    id: it.id,
+                    name: it.name,
+                    priceCents: it.priceCents,
+                  });
+                };
+                wrap.appendChild(row);
+              });
+              frag.appendChild(wrap);
+            });
+            menuEl.appendChild(frag);
+          })
+          .catch(function () {
+            showMsg("Failed to load menu.", false);
+          });
+
+        Api.get("/tables")
+          .then(function (data) {
+            const sel = document.getElementById("tableId");
+            data.tables.forEach(function (t) {
+              const o = document.createElement("option");
+              o.value = t.id;
+              o.textContent = t.name + " (" + t.locationName + ", cap " + t.capacity + ")";
+              sel.appendChild(o);
+            });
+          })
+          .catch(function () {});
+
+        document.getElementById("btnSearch").onclick = function () {
+          const q = document.getElementById("custSearch").value.trim();
+          customerIdEl.value = "";
+          document.getElementById("custResults").innerHTML = "";
+          if (!q) return;
+          Api.get("/customers?q=" + encodeURIComponent(q))
+            .then(function (data) {
+              const box = document.getElementById("custResults");
+              if (!data.customers.length) {
+                box.textContent = "No matches.";
+                return;
+              }
+              data.customers.forEach(function (c) {
+                const b = document.createElement("button");
+                b.type = "button";
+                b.className = "secondary small";
+                b.style.marginRight = "0.35rem";
+                b.style.marginBottom = "0.35rem";
+                b.textContent = c.name + (c.phone ? " — " + c.phone : "");
+                b.onclick = function () {
+                  customerIdEl.value = c.id;
+                  document.getElementById("cName").value = c.name || "";
+                  document.getElementById("cPhone").value = c.phone || "";
+                  box.textContent = "Selected customer #" + c.id;
+                };
+                box.appendChild(b);
+              });
+            })
+            .catch(function () {
+              showMsg("Customer search failed.", false);
+            });
+        };
+
+        document.getElementById("btnSubmit").onclick = function () {
+          const cid = customerIdEl.value;
+          const body = {
+            tableId: document.getElementById("tableId").value || null,
+            notes: document.getElementById("notes").value || null,
+            promotionCode: document.getElementById("promo").value || null,
+            lines: [],
+          };
+          if (cid) body.customerId = Number(cid);
+          else
+            body.customer = {
+              name: document.getElementById("cName").value,
+              phone: document.getElementById("cPhone").value,
+            };
+          cart.forEach(function (v, menuItemId) {
+            body.lines.push({ menuItemId: menuItemId, qty: v.qty });
+          });
+          Api.post("/orders", body)
+            .then(function (r) {
+              showMsg(
+                "Order <strong>#" +
+                  r.orderId +
+                  "</strong> created. Subtotal " +
+                  money(r.subtotalCents) +
+                  ", discount " +
+                  money(r.discountCents) +
+                  ", total " +
+                  money(r.totalCents) +
+                  ".",
+                true
+              );
+              cart.clear();
+              renderCart();
+            })
+            .catch(function (e) {
+              showMsg(e.message || "Order failed", false);
+            });
+        };
+
+        renderCart();
+      })();
+    </script>
+  </body>
+</html>

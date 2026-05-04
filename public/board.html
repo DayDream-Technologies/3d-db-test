@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Orders board — Restaurant demo</title>
+    <link rel="stylesheet" href="/css/style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <h1>Orders board</h1>
+      <nav class="main-nav">
+        <a href="/">Home</a>
+        <a href="/order.html">Place order</a>
+        <a href="/board.html">Orders board</a>
+        <a href="/reservations.html">Reservations</a>
+        <a href="/waitlist.html">Waitlist</a>
+      </nav>
+    </header>
+    <main>
+      <p style="color: var(--muted); margin-top: 0">
+        Open orders only. Advance status toward <code>closed</code> (sets a sample card payment).
+      </p>
+      <div id="msg"></div>
+      <div class="panel">
+        <table class="data">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Placed</th>
+              <th>Customer</th>
+              <th>Table</th>
+              <th>Status</th>
+              <th>Lines</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </main>
+    <script src="/js/api.js"></script>
+    <script>
+      (function () {
+        const msg = document.getElementById("msg");
+        const tbody = document.getElementById("rows");
+        const flow = ["placed", "preparing", "ready", "served", "closed"];
+
+        function showErr(t) {
+          msg.innerHTML = '<div class="msg error">' + t + "</div>";
+        }
+
+        function load() {
+          tbody.innerHTML = "";
+          Api.get("/orders?status=open")
+            .then(function (data) {
+              msg.innerHTML = "";
+              if (!data.orders.length) {
+                tbody.innerHTML =
+                  '<tr><td colspan="7" style="color:var(--muted)">No open orders.</td></tr>';
+                return;
+              }
+              data.orders.forEach(function (o) {
+                const tr = document.createElement("tr");
+                const idx = flow.indexOf(o.statusCode);
+                const next = idx >= 0 && idx < flow.length - 1 ? flow[idx + 1] : null;
+                tr.innerHTML =
+                  "<td>" +
+                  o.id +
+                  "</td><td>" +
+                  o.placedAt +
+                  "</td><td>" +
+                  (o.customerName || "") +
+                  "</td><td>" +
+                  (o.tableName || "—") +
+                  "</td><td>" +
+                  o.statusCode +
+                  "</td><td>" +
+                  o.lineCount +
+                  "</td><td class=\"order-actions\"></td>";
+                const cell = tr.querySelector(".order-actions");
+                if (next) {
+                  const b = document.createElement("button");
+                  b.type = "button";
+                  b.className = "small";
+                  b.textContent = "→ " + next;
+                  b.onclick = function () {
+                    b.disabled = true;
+                    Api.patch("/orders/" + o.id + "/status", { statusCode: next })
+                      .then(function () {
+                        load();
+                      })
+                      .catch(function (e) {
+                        showErr(e.message || "Update failed");
+                        b.disabled = false;
+                      });
+                  };
+                  cell.appendChild(b);
+                } else {
+                  cell.textContent = "—";
+                }
+                tbody.appendChild(tr);
+              });
+            })
+            .catch(function (e) {
+              showErr(e.message || "Failed to load orders");
+            });
+        }
+
+        load();
+      })();
+    </script>
+  </body>
+</html>
